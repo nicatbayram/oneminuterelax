@@ -29,31 +29,37 @@ export default function BreathingScreen({ navigation }) {
   const [isActive, setIsActive] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentSound, setCurrentSound] = useState('ocean');
-  
+  const [language, setLanguage] = useState('tr');
+  const t = texts[language]?.breathing || texts['tr'].breathing;
+
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const sound = useRef(null);
 
-  // Load sound settings
   useEffect(() => {
+    loadLanguage();
     loadSoundSettings();
     return () => {
-      // Cleanup sound when component unmounts
-      if (sound.current) {
-        sound.current.unloadAsync();
-      }
+      if (sound.current) sound.current.unloadAsync();
     };
   }, []);
 
-  // Load sound from settings
+  const loadLanguage = async () => {
+    try {
+      const storedLang = await AsyncStorage.getItem('language');
+      if (storedLang) setLanguage(storedLang);
+    } catch (err) {
+      console.log('Dil ayarı yüklenemedi:', err);
+    }
+  };
+
   const loadSoundSettings = async () => {
     try {
       const savedSound = await AsyncStorage.getItem('backgroundSound');
       if (savedSound) {
         setCurrentSound(savedSound);
       }
-      
-      // Load and play sound if not 'none'
+
       if (savedSound !== 'none') {
         await loadAndPlaySound(savedSound || 'ocean');
       }
@@ -64,13 +70,9 @@ export default function BreathingScreen({ navigation }) {
 
   const loadAndPlaySound = async (soundType) => {
     try {
-      if (sound.current) {
-        await sound.current.unloadAsync();
-      }
+      if (sound.current) await sound.current.unloadAsync();
 
-      if (soundType === 'none' || !SOUND_FILES[soundType]) {
-        return;
-      }
+      if (soundType === 'none' || !SOUND_FILES[soundType]) return;
 
       const { sound: newSound } = await Audio.Sound.createAsync(
         SOUND_FILES[soundType],
@@ -80,7 +82,6 @@ export default function BreathingScreen({ navigation }) {
           volume: 0.3,
         }
       );
-      
       sound.current = newSound;
     } catch (error) {
       console.log('Ses yükleme hatası:', error);
@@ -102,18 +103,13 @@ export default function BreathingScreen({ navigation }) {
     }
   };
 
-  // Timer effect
   useEffect(() => {
     if (!isActive) return;
-
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           setIsActive(false);
-          // Stop sound when finished
-          if (sound.current) {
-            sound.current.pauseAsync();
-          }
+          if (sound.current) sound.current.pauseAsync();
           return 0;
         }
         return prev - 1;
@@ -123,18 +119,14 @@ export default function BreathingScreen({ navigation }) {
     return () => clearInterval(interval);
   }, [isActive]);
 
-  // Breathing animation effect
   useEffect(() => {
     if (!isActive) return;
-
     const breathingInterval = setInterval(() => {
-      setIsBreathingIn(prev => !prev);
+      setIsBreathingIn((prev) => !prev);
     }, 4000);
-
     return () => clearInterval(breathingInterval);
   }, [isActive]);
 
-  // Animation effect
   useEffect(() => {
     const animateCircle = () => {
       Animated.parallel([
@@ -170,26 +162,24 @@ export default function BreathingScreen({ navigation }) {
     navigation.goBack();
   };
 
+  const getSoundLabel = () => {
+    const labels = texts[language]?.settings?.sounds || texts['tr'].settings.sounds;
+    return currentSound === 'none' ? '' : `🎵 ${labels[currentSound]} `;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={[colors.background, colors.backgroundSecondary]}
         style={styles.gradient}
       >
-        {/* Sound Toggle */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.soundButton}
-            onPress={toggleSound}
-          >
-            <Text style={styles.soundIcon}>
-              {soundEnabled ? '🔊' : '🔇'}
-            </Text>
+          <TouchableOpacity style={styles.soundButton} onPress={toggleSound}>
+            <Text style={styles.soundIcon}>{soundEnabled ? '🔊' : '🔇'}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
-          {/* Breathing Circle */}
           <View style={styles.circleContainer}>
             <Animated.View
               style={[
@@ -207,34 +197,27 @@ export default function BreathingScreen({ navigation }) {
             </Animated.View>
           </View>
 
-          {/* Breathing Text */}
           <Text style={styles.breathingText}>
-            {timeLeft > 0 
-              ? (isBreathingIn ? texts.breathing.breatheIn : texts.breathing.breatheOut)
-              : texts.breathing.finished
-            }
+            {timeLeft > 0
+              ? isBreathingIn
+                ? t.breatheIn
+                : t.breatheOut
+              : t.finished}
           </Text>
 
-          {/* Timer */}
-          <Text style={styles.timerText}>
-            {formatTime(timeLeft)}
-          </Text>
+          <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
 
-          {/* Sound Info */}
           {currentSound !== 'none' && (
-            <Text style={styles.soundInfo}>
-              🎵 {currentSound === 'ocean' ? 'Deniz' : 'Orman'} sesleri
-            </Text>
+            <Text style={styles.soundInfo}>{getSoundLabel()}</Text>
           )}
 
-          {/* Finish Button */}
           <TouchableOpacity
             style={styles.finishButton}
             onPress={handleFinish}
             activeOpacity={0.7}
           >
             <Text style={styles.finishButtonText}>
-              {timeLeft > 0 ? texts.breathing.finishButton : 'Tamamlandı ✨'}
+              {timeLeft > 0 ? t.finishButton : '✓'}
             </Text>
           </TouchableOpacity>
         </View>

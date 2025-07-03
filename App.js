@@ -4,6 +4,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { colors } from './src/constants/colors';
 
+// Context
+import { LanguageProvider } from './src/contexts/LanguageContext';
+
 // Screens
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import BreathingScreen from './src/screens/BreathingScreen';
@@ -13,7 +16,7 @@ const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <>
+    <LanguageProvider>
       <StatusBar style="light" backgroundColor={colors.background} />
       <NavigationContainer>
         <Stack.Navigator
@@ -28,6 +31,6 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
-    </>
+    </LanguageProvider>
   );
 }

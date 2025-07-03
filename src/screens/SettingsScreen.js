@@ -11,29 +11,30 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../constants/colors';
-import { texts } from '../constants/texts';
+import { texts, languages } from '../constants/texts';
 
 export default function SettingsScreen({ navigation }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [selectedSound, setSelectedSound] = useState('ocean');
+  const [language, setLanguage] = useState('en'); // Default language
 
-  // Load settings from storage
   useEffect(() => {
     loadSettings();
   }, []);
 
   const loadSettings = async () => {
     try {
+      const storedLang = await AsyncStorage.getItem('language');
+      if (storedLang) setLanguage(storedLang);
+
       const notifications = await AsyncStorage.getItem('notifications');
       const sound = await AsyncStorage.getItem('backgroundSound');
-      
-      console.log('Yüklenen ayarlar:', { notifications, sound });
-      
+
       if (notifications !== null) {
         setNotificationsEnabled(JSON.parse(notifications));
       }
       if (sound !== null) {
-        setSelectedSound(sound); // String olarak kaydettiğimiz için direkt kullan
+        setSelectedSound(sound);
       }
     } catch (error) {
       console.log('Ayarlar yüklenirken hata:', error);
@@ -54,8 +55,6 @@ export default function SettingsScreen({ navigation }) {
     const newValue = !notificationsEnabled;
     setNotificationsEnabled(newValue);
     saveSettings('notifications', newValue);
-    
-    // TODO: Implement notification scheduling
     console.log('Bildirimler:', newValue ? 'Açık' : 'Kapalı');
   };
 
@@ -65,10 +64,17 @@ export default function SettingsScreen({ navigation }) {
     console.log('Seçilen ses:', soundType);
   };
 
+  const changeLanguage = (langCode) => {
+    setLanguage(langCode);
+    AsyncStorage.setItem('language', langCode);
+  };
+
+  const t = texts[language];
+
   const soundOptions = [
-    { key: 'ocean', label: texts.settings.sounds.ocean },
-    { key: 'forest', label: texts.settings.sounds.forest },
-    { key: 'none', label: texts.settings.sounds.none },
+    { key: 'ocean', label: t.settings.sounds.ocean },
+    { key: 'forest', label: t.settings.sounds.forest },
+    { key: 'none', label: t.settings.sounds.none },
   ];
 
   return (
@@ -85,17 +91,49 @@ export default function SettingsScreen({ navigation }) {
           >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{texts.settings.title}</Text>
+          <Text style={styles.title}>{t.settings.title}</Text>
           <View style={styles.placeholder} />
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Language Setting */}
+          <View style={styles.settingSection}>
+            <View style={styles.settingHeader}>
+              <Text style={styles.settingIcon}>🌐</Text>
+              <Text style={styles.settingLabel}>Dil / Language</Text>
+            </View>
+            <View style={{ flexDirection: 'row' }}>
+              {Object.entries(languages).map(([code, label]) => (
+                <TouchableOpacity
+                  key={code}
+                  onPress={() => changeLanguage(code)}
+                  style={{
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    marginRight: 10,
+                    backgroundColor: language === code ? colors.primary : colors.background,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                  }}
+                >
+                  <Text style={{
+                    color: language === code ? colors.text : colors.textSecondary,
+                    fontWeight: '600',
+                  }}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* Notification Setting */}
           <View style={styles.settingSection}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingIcon}>🔔</Text>
-                <Text style={styles.settingLabel}>{texts.settings.notifications}</Text>
+                <Text style={styles.settingLabel}>{t.settings.notifications}</Text>
               </View>
               <Switch
                 value={notificationsEnabled}
@@ -105,7 +143,7 @@ export default function SettingsScreen({ navigation }) {
               />
             </View>
             <Text style={styles.settingDescription}>
-              Günlük hatırlatma bildirimi al
+              {language === 'tr' ? 'Günlük hatırlatma bildirimi al' : 'Receive daily reminder notification'}
             </Text>
           </View>
 
@@ -113,9 +151,9 @@ export default function SettingsScreen({ navigation }) {
           <View style={styles.settingSection}>
             <View style={styles.settingHeader}>
               <Text style={styles.settingIcon}>🔊</Text>
-              <Text style={styles.settingLabel}>{texts.settings.backgroundSound}</Text>
+              <Text style={styles.settingLabel}>{t.settings.backgroundSound}</Text>
             </View>
-            
+
             {soundOptions.map((option) => (
               <TouchableOpacity
                 key={option.key}
@@ -140,12 +178,8 @@ export default function SettingsScreen({ navigation }) {
 
           {/* App Info */}
           <View style={styles.infoSection}>
-            <Text style={styles.infoText}>
-              📱 1 Dakika Rahatlama v1.0.0
-            </Text>
-            <Text style={styles.infoSubtext}>
-              Günlük stresini azalt, kendine zaman ayır.
-            </Text>
+            <Text style={styles.infoText}>{t.info.version}</Text>
+            <Text style={styles.infoSubtext}>{t.info.subtitle}</Text>
           </View>
         </ScrollView>
       </LinearGradient>
@@ -172,30 +206,29 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.backgroundSecondary,
   },
   backButton: {
-  width: 40,
-  height: 40,
-  borderRadius: 22,
-  borderWidth: 0.5,
-  borderColor: colors.primary,
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: 'transparent',
+    width: 40,
+    height: 40,
+    borderRadius: 22,
+    borderWidth: 0.5,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   backIcon: {
-  fontSize: 24,
-  color: colors.primary,
-  fontWeight: 'bold',
-  textAlign: 'center',
-  paddingBottom: 8, // Adjust for better vertical centering
-},
-
+    fontSize: 24,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingBottom: 8,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
   placeholder: {
-    width: 44, // Same width as back button for centering
+    width: 44,
   },
   content: {
     flex: 1,

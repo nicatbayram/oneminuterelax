@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,26 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../constants/colors';
 import { texts } from '../constants/texts';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen({ navigation }) {
+  const [language, setLanguage] = useState('tr'); // Default language
+  const t = texts[language];
+
+  useEffect(() => {
+    const loadLanguage = async () => {
+      const storedLang = await AsyncStorage.getItem('language');
+      if (storedLang) {
+        setLanguage(storedLang);
+      }
+    };
+    loadLanguage();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
@@ -35,7 +49,7 @@ export default function WelcomeScreen({ navigation }) {
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
               <Image
-                source={require('../../assets/meditationn.png')} // ← buraya kendi resim yolunu yaz
+                source={require('../../assets/meditationn.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -43,10 +57,10 @@ export default function WelcomeScreen({ navigation }) {
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{texts.welcome.title}</Text>
+          <Text style={styles.title}>{t.welcome.title}</Text>
 
           {/* Subtitle */}
-          <Text style={styles.subtitle}>{texts.welcome.subtitle}</Text>
+          <Text style={styles.subtitle}>{t.welcome.subtitle}</Text>
 
           {/* Start Button */}
           <TouchableOpacity
@@ -61,7 +75,7 @@ export default function WelcomeScreen({ navigation }) {
               style={styles.buttonGradient}
             >
               <Text style={styles.startButtonText}>
-                {texts.welcome.startButton}
+                {t.welcome.startButton}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -95,7 +109,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-   
     borderColor: colors.primary,
   },
   logoImage: {
